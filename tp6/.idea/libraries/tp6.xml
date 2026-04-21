@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="tp6">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/vscode.zip!/" />
+      <root url="jar://$PROJECT_DIR$/data.zip!/" />
+      <root url="jar://$PROJECT_DIR$/out.zip!/" />
+      <root url="jar://$PROJECT_DIR$/src.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

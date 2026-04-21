@@ -1,0 +1,77 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "generate-report-captures",
+			"type": "shell",
+			"command": "javac -encoding UTF-8 -d out src/*.java && java -cp out ReportCaptureGenerator",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "build-report-pdf",
+			"type": "shell",
+			"command": "pdflatex -interaction=nonstopmode -halt-on-error rapport.tex && pdflatex -interaction=nonstopmode -halt-on-error rapport.tex",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "check-pdf-tools",
+			"type": "shell",
+			"command": "command -v python3; command -v libreoffice; command -v soffice; command -v wkhtmltopdf; command -v pandoc; command -v tectonic",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "regenerate-report-captures",
+			"type": "shell",
+			"command": "javac -encoding UTF-8 -d out src/*.java && java -cp out ReportCaptureGenerator",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "regenerate-report-captures-2",
+			"type": "shell",
+			"command": "javac -encoding UTF-8 -d out src/*.java && java -cp out ReportCaptureGenerator",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "run-experiments",
+			"type": "shell",
+			"command": "javac -encoding UTF-8 -d out src/*.java && java -cp out ExperimentRunner",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "build-after-comment-clean",
+			"type": "shell",
+			"command": "javac -encoding UTF-8 -d out src/*.java",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "regenerate-all-captures",
+			"type": "shell",
+			"command": "javac -encoding UTF-8 -d out src/*.java && java -cp out ReportCaptureGenerator",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "regen-captures-and-pdf",
+			"type": "shell",
+			"command": "javac -encoding UTF-8 -d out src/*.java && java -cp out ReportCaptureGenerator && python3 build_report.py",
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}
