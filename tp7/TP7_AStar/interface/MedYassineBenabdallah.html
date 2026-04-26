@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A* GPS — Tunisie</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Outfit:wght@300;400;600;700;900&display=swap');
+
+:root {
+  --bg:        #060910;
+  --bg2:       #0b1120;
+  --surface:   #0f1929;
+  --surface2:  #162236;
+  --border:    #1c3050;
+  --border2:   #243a5a;
+  --cyan:      #00e5ff;
+  --orange:    #ff6b2b;
+  --green:     #00f5a0;
+  --purple:    #8b5cf6;
+  --amber:     #f59e0b;
+  --red:       #ef4444;
+  --text:      #cdd8ee;
+  --text-dim:  #4a6080;
+  --text-mid:  #7a9abf;
+}
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+
+header{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:14px;flex-shrink:0;z-index:20;}
+.logo-mark{width:32px;height:32px;background:linear-gradient(135deg,var(--cyan),var(--orange));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.logo-text{font-size:16px;font-weight:700;letter-spacing:-0.3px;}
+.logo-text span{color:var(--cyan);}
+.hdr-formula{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--cyan);background:rgba(0,229,255,0.1);border:1px solid rgba(0,229,255,0.2);padding:4px 12px;border-radius:20px;letter-spacing:1px;}
+.hdr-tag{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);border:1px solid var(--border);padding:3px 10px;border-radius:20px;}
+
+.layout{display:grid;grid-template-columns:285px 1fr 265px;flex:1;overflow:hidden;}
+
+/* PANEL */
+.panel{background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;}
+.panel::-webkit-scrollbar{width:3px;}.panel::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.ps{padding:13px 15px;border-bottom:1px solid var(--border);}
+.slbl{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;letter-spacing:2.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;}
+.field{margin-bottom:10px;}
+.field label{display:block;font-size:11px;color:var(--text-mid);margin-bottom:5px;font-family:'JetBrains Mono',monospace;}
+
+select,input[type=number]{width:100%;background:var(--surface);border:1px solid var(--border2);color:var(--text);padding:9px 11px;border-radius:8px;font-family:'Outfit',sans-serif;font-size:13px;outline:none;cursor:pointer;transition:border-color .2s;-webkit-appearance:none;}
+select:focus,input[type=number]:focus{border-color:var(--cyan);}
+select option{background:var(--surface2);}
+
+.atabs{display:flex;gap:5px;}
+.atab{flex:1;padding:8px 4px;border-radius:7px;border:1px solid var(--border2);background:transparent;color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:500;cursor:pointer;transition:all .2s;text-align:center;}
+.atab:hover{border-color:var(--text-mid);color:var(--text-mid);}
+.atab.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,0.07);}
+
+.slider-row{display:flex;align-items:center;gap:10px;}
+.slider-row input[type=range]{flex:1;height:4px;-webkit-appearance:none;background:var(--border2);border-radius:2px;cursor:pointer;padding:0;border:none;}
+.slider-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--cyan);cursor:pointer;}
+.slbl2{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);}
+
+.btn-run{width:100%;padding:13px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--cyan) 0%,#0099bb 100%);color:var(--bg);font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;letter-spacing:1px;cursor:pointer;text-transform:uppercase;transition:all .2s;margin-bottom:8px;}
+.btn-run:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(0,229,255,0.25);}
+.btn-run:active{transform:translateY(0);}
+.btn-run:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-reset{width:100%;padding:9px;border:1px solid var(--border2);border-radius:8px;background:transparent;color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;transition:all .2s;}
+.btn-reset:hover{border-color:var(--orange);color:var(--orange);}
+
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.sbox{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 8px;text-align:center;}
+.sval{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--cyan);line-height:1;}
+.slbl3{font-size:9px;color:var(--text-dim);margin-top:4px;font-family:'JetBrains Mono',monospace;}
+
+.legend{display:flex;flex-direction:column;gap:7px;}
+.leg-row{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--text-mid);}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+/* MAP */
+.map-wrap{position:relative;overflow:hidden;background:var(--bg);}
+#mapSvg{width:100%;height:100%;}
+.scan-line{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(0,229,255,0.35),transparent);animation:scan 5s linear infinite;pointer-events:none;}
+@keyframes scan{0%{top:0;opacity:0;}5%{opacity:1;}95%{opacity:1;}100%{top:100%;opacity:0;}}
+
+#tooltip{position:absolute;pointer-events:none;z-index:50;display:none;background:var(--surface2);border:1px solid var(--cyan);border-radius:8px;padding:9px 13px;font-family:'JetBrains Mono',monospace;font-size:10px;line-height:2;box-shadow:0 8px 32px rgba(0,0,0,0.7),0 0 20px rgba(0,229,255,0.08);min-width:155px;}
+.tt-city{color:var(--cyan);font-size:12px;font-weight:700;margin-bottom:1px;}
+
+/* RIGHT PANEL */
+.trace-panel{background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.trace-hdr{padding:14px 15px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.trace-scroll{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:7px;}
+.trace-scroll::-webkit-scrollbar{width:3px;}.trace-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+.tc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 11px;animation:cIn .2s ease;}
+@keyframes cIn{from{opacity:0;transform:translateX(8px);}to{opacity:1;transform:translateX(0);}}
+.tc.cur{border-color:var(--orange);background:rgba(255,107,43,0.05);}
+.tc.done{border-color:var(--green);background:rgba(0,245,160,0.04);}
+.tc-iter{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--text-dim);letter-spacing:1.5px;margin-bottom:5px;}
+.tc-node{font-size:13px;font-weight:700;color:var(--orange);margin-bottom:5px;}
+.tc-node.done{color:var(--green);}
+.tc-vals{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;}
+.vtag{font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 7px;border-radius:4px;border:1px solid;}
+.vtag.g{border-color:var(--green);color:var(--green);background:rgba(0,245,160,0.06);}
+.vtag.h{border-color:var(--purple);color:var(--purple);background:rgba(139,92,246,0.06);}
+.vtag.f{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,0.06);}
+.tc-lists{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);line-height:1.9;}
+.lo{color:var(--amber);}.lc{color:var(--purple);}
+
+.trace-empty{color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:11px;text-align:center;padding:40px 10px;line-height:2;}
+
+.rcard{background:rgba(0,245,160,0.04);border:1px solid var(--green);border-radius:10px;padding:12px;}
+.rcard-title{font-size:10px;font-weight:700;color:var(--green);font-family:'JetBrains Mono',monospace;letter-spacing:1.5px;margin-bottom:8px;}
+.rcard-path{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text);line-height:2;}
+.rcard-path .arr{color:var(--cyan);}
+.rcard-stats{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:9px;}
+.rsbox{background:var(--surface);border-radius:6px;padding:7px 8px;text-align:center;}
+.rsv{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--cyan);}
+.rsl{font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--text-dim);margin-top:2px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">🗺</div>
+  <div class="logo-text">GPS <span>A*</span> Tunisie</div>
+  <div class="hdr-formula">f(n) = g(n) + h(n)</div>
+  <div class="hdr-tag">TP7 · GLSI2 · S4 2025/2026</div>
+</header>
+
+<div class="layout">
+
+<!-- LEFT -->
+<div class="panel">
+  <div class="ps">
+    <div class="slbl">Itinéraire</div>
+    <div class="field"><label>Départ</label><select id="selStart"></select></div>
+    <div class="field"><label>Arrivée</label><select id="selEnd"></select></div>
+  </div>
+  <div class="ps">
+    <div class="slbl">Algorithme</div>
+    <div class="atabs">
+      <button class="atab active" data-algo="astar">A*</button>
+      <button class="atab" data-algo="ucs">UCS</button>
+      <button class="atab" data-algo="bestfirst">GREEDY</button>
+    </div>
+  </div>
+  <div class="ps">
+    <div class="slbl">Heuristique</div>
+    <div class="field">
+      <label>h(Gafsa) — normal = 100, test inadmissibilité: 500</label>
+      <input type="number" id="hGafsa" value="100" min="0" max="999">
+    </div>
+  </div>
+  <div class="ps">
+    <div class="slbl">Vitesse Animation</div>
+    <div class="slider-row">
+      <span class="slbl2">LENT</span>
+      <input type="range" id="speedSlider" min="150" max="2200" value="900" step="100">
+      <span class="slbl2">VITE</span>
+    </div>
+  </div>
+  <div class="ps">
+    <button class="btn-run" id="btnRun" onclick="runAlgorithm()">▶ &nbsp;Lancer</button>
+    <button class="btn-reset" onclick="resetAll()">↺ &nbsp;Réinitialiser</button>
+  </div>
+  <div class="ps">
+    <div class="slbl">Statistiques</div>
+    <div class="stats-grid">
+      <div class="sbox"><div class="sval" id="sCost">—</div><div class="slbl3">COÛT km</div></div>
+      <div class="sbox"><div class="sval" id="sNodes">—</div><div class="slbl3">NOEUDS</div></div>
+      <div class="sbox"><div class="sval" id="sIter">—</div><div class="slbl3">ITÉRAT.</div></div>
+      <div class="sbox"><div class="sval" id="sSteps">—</div><div class="slbl3">ÉTAPES</div></div>
+    </div>
+  </div>
+  <div class="ps">
+    <div class="slbl">Légende</div>
+    <div class="legend">
+      <div class="leg-row"><div class="leg-dot" style="background:var(--cyan);box-shadow:0 0 6px var(--cyan)"></div>Source</div>
+      <div class="leg-row"><div class="leg-dot" style="background:var(--orange);box-shadow:0 0 6px var(--orange)"></div>Nœud courant</div>
+      <div class="leg-row"><div class="leg-dot" style="background:var(--amber)"></div>Open list</div>
+      <div class="leg-row"><div class="leg-dot" style="background:var(--purple)"></div>Closed list</div>
+      <div class="leg-row"><div class="leg-dot" style="background:var(--green);box-shadow:0 0 6px var(--green)"></div>Chemin optimal</div>
+      <div class="leg-row"><div class="leg-dot" style="background:var(--orange);border:2px dashed rgba(255,255,255,0.3)"></div>Destination</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAP -->
+<div class="map-wrap">
+  <div class="scan-line"></div>
+  <svg id="mapSvg" viewBox="0 0 700 920" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <filter id="glow-sm"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <filter id="glow-md"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <filter id="glow-lg"><feGaussianBlur stdDeviation="12" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      <radialGradient id="seaG" cx="50%" cy="50%"><stop offset="0%" stop-color="#07101e"/><stop offset="100%" stop-color="#030710"/></radialGradient>
+      <linearGradient id="landG" x1="0" y1="0" x2="0.2" y2="1">
+        <stop offset="0%"  stop-color="#0d1f0f"/>
+        <stop offset="45%" stop-color="#111e0e"/>
+        <stop offset="100%" stop-color="#1a1a08"/>
+      </linearGradient>
+    </defs>
+
+    <!-- Sea -->
+    <rect width="700" height="920" fill="url(#seaG)"/>
+
+    <!-- Grid lines -->
+    <g opacity="0.035" stroke="#00e5ff" stroke-width="0.5">
+      <line x1="0" y1="92" x2="700" y2="92"/>
+      <line x1="0" y1="184" x2="700" y2="184"/>
+      <line x1="0" y1="276" x2="700" y2="276"/>
+      <line x1="0" y1="368" x2="700" y2="368"/>
+      <line x1="0" y1="460" x2="700" y2="460"/>
+      <line x1="0" y1="552" x2="700" y2="552"/>
+      <line x1="0" y1="644" x2="700" y2="644"/>
+      <line x1="0" y1="736" x2="700" y2="736"/>
+      <line x1="0" y1="828" x2="700" y2="828"/>
+      <line x1="87" y1="0" x2="87" y2="920"/>
+      <line x1="175" y1="0" x2="175" y2="920"/>
+      <line x1="263" y1="0" x2="263" y2="920"/>
+      <line x1="350" y1="0" x2="350" y2="920"/>
+      <line x1="438" y1="0" x2="438" y2="920"/>
+      <line x1="525" y1="0" x2="525" y2="920"/>
+      <line x1="613" y1="0" x2="613" y2="920"/>
+    </g>
+
+    <!-- Tunisia land silhouette — carefully traced approximate shape -->
+    <path d="
+      M 248 22
+      L 300 18
+      L 355 26
+      L 400 45
+      L 432 75
+      L 452 108
+      L 468 148
+      L 480 192
+      L 490 238
+      L 498 285
+      L 508 335
+      L 520 390
+      L 534 445
+      L 546 500
+      L 554 555
+      L 558 608
+      L 555 658
+      L 546 703
+      L 530 742
+      L 510 776
+      L 485 805
+      L 456 827
+      L 422 844
+      L 385 856
+      L 344 863
+      L 300 866
+      L 255 862
+      L 210 852
+      L 168 836
+      L 132 814
+      L 102 786
+      L 76 754
+      L 56 717
+      L 40 675
+      L 28 628
+      L 20 578
+      L 16 525
+      L 17 470
+      L 23 415
+      L 34 362
+      L 48 312
+      L 63 265
+      L 80 222
+      L 100 183
+      L 123 148
+      L 150 118
+      L 178 93
+      L 208 70
+      L 228 48
+      Z
+    " fill="url(#landG)" opacity="0.6"/>
+
+    <!-- Subtle shore glow -->
+    <path d="
+      M 248 22 L 300 18 L 355 26 L 400 45 L 432 75 L 452 108 L 468 148
+      L 480 192 L 490 238 L 498 285 L 508 335 L 520 390 L 534 445 L 546 500
+      L 554 555 L 558 608 L 555 658 L 546 703 L 530 742 L 510 776 L 485 805
+      L 456 827 L 422 844 L 385 856 L 344 863 L 300 866 L 255 862 L 210 852
+      L 168 836 L 132 814 L 102 786 L 76 754 L 56 717 L 40 675 L 28 628
+      L 20 578 L 16 525 L 17 470 L 23 415 L 34 362 L 48 312 L 63 265
+      L 80 222 L 100 183 L 123 148 L 150 118 L 178 93 L 208 70 L 228 48 Z
+    " fill="none" stroke="rgba(0,229,255,0.06)" stroke-width="2"/>
+
+    <!-- Decorative elements -->
+    <text x="350" y="895" text-anchor="middle" fill="rgba(0,229,255,0.05)" font-family="Outfit,sans-serif" font-size="52" font-weight="900" letter-spacing="10">TUNISIE</text>
+
+    <!-- Compass -->
+    <g transform="translate(650,52)">
+      <circle cx="0" cy="0" r="22" fill="var(--surface)" stroke="var(--border2)" stroke-width="1" opacity="0.9"/>
+      <text x="0" y="-8" text-anchor="middle" fill="var(--cyan)" font-family="JetBrains Mono" font-size="10" font-weight="700">N</text>
+      <text x="0" y="16" text-anchor="middle" fill="var(--text-dim)" font-family="JetBrains Mono" font-size="7">S</text>
+      <text x="-15" y="4" text-anchor="middle" fill="var(--text-dim)" font-family="JetBrains Mono" font-size="7">O</text>
+      <text x="15" y="4" text-anchor="middle" fill="var(--text-dim)" font-family="JetBrains Mono" font-size="7">E</text>
+      <line x1="0" y1="-16" x2="0" y2="16" stroke="var(--border2)" stroke-width="0.5"/>
+      <line x1="-16" y1="0" x2="16" y2="0" stroke="var(--border2)" stroke-width="0.5"/>
+    </g>
+
+    <!-- Scale bar -->
+    <g transform="translate(28,893)">
+      <line x1="0" y1="0" x2="85" y2="0" stroke="var(--text-dim)" stroke-width="1.2"/>
+      <line x1="0" y1="-5" x2="0" y2="5" stroke="var(--text-dim)" stroke-width="1.2"/>
+      <line x1="85" y1="-5" x2="85" y2="5" stroke="var(--text-dim)" stroke-width="1.2"/>
+      <text x="42" y="-8" text-anchor="middle" fill="var(--text-dim)" font-family="JetBrains Mono" font-size="8">~200 km</text>
+    </g>
+
+    <!-- Dynamic layers (rendered by JS) -->
+    <g id="lEdges"></g>
+    <g id="lDist"></g>
+    <g id="lPath"></g>
+    <g id="lNodes"></g>
+  </svg>
+
+  <div id="tooltip">
+    <div class="tt-city" id="tt-name">—</div>
+    <div id="tt-body"></div>
+  </div>
+</div>
+
+<!-- RIGHT: TRACE -->
+<div class="trace-panel">
+  <div class="trace-hdr"><div class="slbl">Trace d'exécution</div></div>
+  <div class="trace-scroll" id="traceScroll">
+    <div class="trace-empty">Sélectionnez un itinéraire<br>et cliquez ▶ Lancer</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  18 TUNISIAN CITIES — real geographic positions mapped to SVG
+//  viewBox 700×920  (North top, South bottom)
+// ═══════════════════════════════════════════════════════════════
+const CITIES = {
+  Bizerte:     { x: 222, y: 50,  h: 530, region: 'Nord' },
+  Tunis:       { x: 318, y: 92,  h: 450, region: 'Nord' },
+  Nabeul:      { x: 410, y: 125, h: 430, region: 'Nord-Est' },
+  Zaghouan:    { x: 348, y: 168, h: 395, region: 'Nord-Centre' },
+  ElKef:       { x: 172, y: 202, h: 385, region: 'Nord-Ouest' },
+  Siliana:     { x: 252, y: 220, h: 360, region: 'Nord-Ouest' },
+  Sousse:      { x: 400, y: 278, h: 310, region: 'Centre-Est' },
+  Monastir:    { x: 415, y: 318, h: 300, region: 'Centre-Est' },
+  Kairouan:    { x: 308, y: 308, h: 270, region: 'Centre' },
+  Mahdia:      { x: 430, y: 372, h: 285, region: 'Centre-Est' },
+  Kasserine:   { x: 210, y: 365, h: 298, region: 'Centre-Ouest' },
+  Sidi_Bouzid: { x: 296, y: 420, h: 265, region: 'Centre' },
+  Sfax:        { x: 408, y: 462, h: 240, region: 'Sud-Est' },
+  Gabes:       { x: 422, y: 565, h: 175, region: 'Sud-Est' },
+  Gafsa:       { x: 242, y: 520, h: 100, region: 'Sud-Ouest' },
+  Medenine:    { x: 462, y: 650, h: 160, region: 'Grand Sud-Est' },
+  Kebili:      { x: 288, y: 638, h: 88,  region: 'Sud' },
+  Tozeur:      { x: 178, y: 668, h: 0,   region: 'Grand Sud-Ouest' },
+};
+
+function cityLabel(n){ return n.replace(/_/g,' '); }
+
+// ═══════════════════════════════════════════════════════════════
+//  FULL ROAD NETWORK — 32 edges with real distances (km)
+// ═══════════════════════════════════════════════════════════════
+const EDGES = [
+  // North
+  { a:'Bizerte',     b:'Tunis',       d:66,  r:'GP7'  },
+  { a:'Tunis',       b:'Nabeul',      d:72,  r:'GP1'  },
+  { a:'Tunis',       b:'Zaghouan',    d:60,  r:'GP3'  },
+  { a:'Tunis',       b:'ElKef',       d:175, r:'GP5'  },
+  { a:'Tunis',       b:'Siliana',     d:130, r:'GP4'  },
+  { a:'Tunis',       b:'Sousse',      d:140, r:'A1'   },
+  { a:'Nabeul',      b:'Sousse',      d:90,  r:'GP1'  },
+  { a:'Nabeul',      b:'Zaghouan',    d:55,  r:'GP1'  },
+  { a:'Zaghouan',    b:'Kairouan',    d:85,  r:'GP3'  },
+  { a:'ElKef',       b:'Siliana',     d:60,  r:'GP5'  },
+  { a:'ElKef',       b:'Kasserine',   d:130, r:'GP17' },
+  { a:'ElKef',       b:'Kairouan',    d:115, r:'GP4'  },
+  { a:'Siliana',     b:'Kairouan',    d:90,  r:'GP12' },
+  // Centre
+  { a:'Sousse',      b:'Kairouan',    d:90,  r:'MC82' },
+  { a:'Sousse',      b:'Monastir',    d:22,  r:'GP1'  },
+  { a:'Sousse',      b:'Sfax',        d:130, r:'A1'   },
+  { a:'Monastir',    b:'Mahdia',      d:45,  r:'GP1'  },
+  { a:'Mahdia',      b:'Sfax',        d:95,  r:'GP1'  },
+  { a:'Kairouan',    b:'Sidi_Bouzid', d:95,  r:'GP13' },
+  { a:'Kairouan',    b:'Kasserine',   d:105, r:'GP13' },
+  { a:'Kasserine',   b:'Sidi_Bouzid', d:75,  r:'GP13' },
+  { a:'Kasserine',   b:'Gafsa',       d:90,  r:'GP17' },
+  { a:'Sidi_Bouzid', b:'Sfax',        d:120, r:'GP14' },
+  { a:'Sidi_Bouzid', b:'Gafsa',       d:110, r:'GP15' },
+  // South
+  { a:'Sfax',        b:'Gabes',       d:140, r:'GP1'  },
+  { a:'Sfax',        b:'Gafsa',       d:155, r:'GP14' },
+  { a:'Gabes',       b:'Gafsa',       d:125, r:'GP15' },
+  { a:'Gabes',       b:'Medenine',    d:76,  r:'GP1'  },
+  { a:'Gabes',       b:'Kebili',      d:130, r:'GP16' },
+  { a:'Gafsa',       b:'Kebili',      d:130, r:'GP16' },
+  { a:'Gafsa',       b:'Tozeur',      d:90,  r:'GP3'  },
+  { a:'Kebili',      b:'Tozeur',      d:82,  r:'GP16' },
+  { a:'Medenine',    b:'Kebili',      d:195, r:'GP19' },
+];
+
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+let selAlgo  = 'astar';
+let animTmr  = null;
+let running  = false;
+let gVals    = {};
+
+// ═══════════════════════════════════════════════════════════════
+//  POPULATE SELECTS
+// ═══════════════════════════════════════════════════════════════
+function populateSelects(){
+  const s = document.getElementById('selStart');
+  const e = document.getElementById('selEnd');
+  Object.keys(CITIES).forEach(n => {
+    s.appendChild(new Option(cityLabel(n), n));
+    e.appendChild(new Option(cityLabel(n), n));
+  });
+  s.value = 'Tunis';
+  e.value = 'Tozeur';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GRAPH HELPERS
+// ═══════════════════════════════════════════════════════════════
+function buildAdj(){
+  const adj = {};
+  Object.keys(CITIES).forEach(c => adj[c]=[]);
+  EDGES.forEach(e => {
+    adj[e.a].push({node:e.b, dist:e.d});
+    adj[e.b].push({node:e.a, dist:e.d});
+  });
+  return adj;
+}
+
+function getH(n){
+  if(n==='Gafsa') return parseInt(document.getElementById('hGafsa').value)||100;
+  return CITIES[n]?.h ?? 0;
+}
+
+function heapPop(arr, keyFn){
+  if(!arr.length) return null;
+  let mi=0;
+  for(let i=1;i<arr.length;i++) if(keyFn(arr[i])<keyFn(arr[mi])) mi=i;
+  return arr.splice(mi,1)[0];
+}
+
+function rebuildPath(parent, end){
+  const p=[]; let c=end;
+  while(c!==null){p.unshift(c); c=parent[c];}
+  return p;
+}
+
+// ─── A* ───
+function doAStar(src, dst, adj){
+  const g={}, par={};
+  Object.keys(CITIES).forEach(c=>{g[c]=Infinity; par[c]=null;});
+  g[src]=0;
+  let openArr=[src];
+  const openSet=new Set([src]), closed=new Set(), iters=[];
+  const fv=n=>g[n]+getH(n);
+
+  while(openArr.length){
+    const cur=heapPop(openArr,fv); openSet.delete(cur);
+    const oSnap=[...openArr].sort((a,b)=>fv(a)-fv(b));
+    iters.push({current:cur,g:g[cur],h:getH(cur),f:fv(cur),
+      openList:oSnap.map(n=>({name:n,f:fv(n)})),
+      closedList:[...closed], gSnap:{...g}});
+    if(cur===dst) return{path:rebuildPath(par,dst),iters,cost:g[dst],expanded:closed.size};
+    closed.add(cur);
+    (adj[cur]||[]).forEach(({node:nb,dist})=>{
+      if(closed.has(nb)) return;
+      const gn=g[cur]+dist;
+      if(gn<g[nb]){g[nb]=gn; par[nb]=cur; if(!openSet.has(nb)){openArr.push(nb);openSet.add(nb);}}
+    });
+  }
+  return null;
+}
+
+// ─── UCS ───
+function doUCS(src, dst, adj){
+  const g={}, par={};
+  Object.keys(CITIES).forEach(c=>{g[c]=Infinity; par[c]=null;});
+  g[src]=0;
+  let openArr=[src];
+  const openSet=new Set([src]), closed=new Set(), iters=[];
+  while(openArr.length){
+    const cur=heapPop(openArr,n=>g[n]); openSet.delete(cur);
+    const oSnap=[...openArr].sort((a,b)=>g[a]-g[b]);
+    iters.push({current:cur,g:g[cur],h:0,f:g[cur],openList:oSnap.map(n=>({name:n,f:g[n]})),closedList:[...closed],gSnap:{...g}});
+    if(cur===dst) return{path:rebuildPath(par,dst),iters,cost:g[dst],expanded:closed.size};
+    closed.add(cur);
+    (adj[cur]||[]).forEach(({node:nb,dist})=>{
+      if(closed.has(nb)) return;
+      const gn=g[cur]+dist;
+      if(gn<g[nb]){g[nb]=gn; par[nb]=cur; if(!openSet.has(nb)){openArr.push(nb);openSet.add(nb);}}
+    });
+  }
+  return null;
+}
+
+// ─── Best-First (Greedy) ───
+function doBestFirst(src, dst, adj){
+  const g={}, par={};
+  Object.keys(CITIES).forEach(c=>{g[c]=Infinity; par[c]=null;});
+  g[src]=0;
+  let openArr=[src];
+  const openSet=new Set([src]), closed=new Set(), iters=[];
+  while(openArr.length){
+    const cur=heapPop(openArr,n=>getH(n)); openSet.delete(cur);
+    const oSnap=[...openArr].sort((a,b)=>getH(a)-getH(b));
+    iters.push({current:cur,g:g[cur],h:getH(cur),f:getH(cur),openList:oSnap.map(n=>({name:n,f:getH(n)})),closedList:[...closed],gSnap:{...g}});
+    if(cur===dst) return{path:rebuildPath(par,dst),iters,cost:g[dst],expanded:closed.size};
+    closed.add(cur);
+    (adj[cur]||[]).forEach(({node:nb,dist})=>{
+      if(closed.has(nb)||openSet.has(nb)) return;
+      g[nb]=g[cur]+dist; par[nb]=cur; openArr.push(nb); openSet.add(nb);
+    });
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SVG HELPER
+// ═══════════════════════════════════════════════════════════════
+function se(tag, attrs={}){
+  const el=document.createElementNS('http://www.w3.org/2000/svg',tag);
+  Object.entries(attrs).forEach(([k,v])=>{ if(v!=='' && v!==undefined) el.setAttribute(k,v); });
+  return el;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RENDER MAP
+// ═══════════════════════════════════════════════════════════════
+function renderMap(state={}){
+  const {openList=[],closedList=[],currentNode=null,path=[],src='',dst='',gSnap={}}=state;
+  gVals=gSnap;
+
+  const lE=document.getElementById('lEdges');
+  const lD=document.getElementById('lDist');
+  const lP=document.getElementById('lPath');
+  const lN=document.getElementById('lNodes');
+  lE.innerHTML=''; lD.innerHTML=''; lP.innerHTML=''; lN.innerHTML='';
+
+  const openSet=new Set(openList);
+  const closedSet=new Set(closedList);
+  const pathSet=new Set(path);
+
+  // ── Edges ──
+  EDGES.forEach(e=>{
+    const ca=CITIES[e.a], cb=CITIES[e.b];
+    if(!ca||!cb) return;
+    const onPath=path.length>1 && isOnPath(e.a,e.b,path);
+
+    lE.appendChild(se('line',{
+      x1:ca.x,y1:ca.y,x2:cb.x,y2:cb.y,
+      stroke: onPath ? '#00f5a0' : '#1c3352',
+      'stroke-width': onPath ? 3.5 : 1.5,
+      opacity: onPath ? 1 : 0.65,
+      filter: onPath ? 'url(#glow-sm)' : '',
+    }));
+
+    // Distance label
+    const mx=(ca.x+cb.x)/2, my=(ca.y+cb.y)/2;
+    const dx=cb.x-ca.x, dy=cb.y-ca.y;
+    const len=Math.sqrt(dx*dx+dy*dy)||1;
+    const ox=-dy/len*9, oy=dx/len*9;
+    const dt=se('text',{
+      x:mx+ox, y:my+oy,
+      'text-anchor':'middle',
+      fill: onPath ? '#00f5a0' : '#243a55',
+      'font-size': onPath ? 10 : 8,
+      'font-family':'JetBrains Mono,monospace',
+      'font-weight': onPath ? 700 : 400,
+      filter: onPath ? 'url(#glow-sm)' : '',
+    });
+    dt.textContent=e.d+'';
+    lD.appendChild(dt);
+  });
+
+  // ── Path glow ──
+  if(path.length>1){
+    for(let i=0;i<path.length-1;i++){
+      const ca=CITIES[path[i]], cb=CITIES[path[i+1]];
+      if(!ca||!cb) continue;
+      lP.appendChild(se('line',{
+        x1:ca.x,y1:ca.y,x2:cb.x,y2:cb.y,
+        stroke:'#00f5a0','stroke-width':10,opacity:0.12,filter:'url(#glow-lg)',
+      }));
+    }
+  }
+
+  // ── Nodes ──
+  Object.entries(CITIES).forEach(([name,city])=>{
+    const isSrc  = name===src;
+    const isDst  = name===dst;
+    const isCur  = name===currentNode;
+    const isOpen = openSet.has(name);
+    const isCld  = closedSet.has(name);
+    const isPath = pathSet.has(name) && path.length>1;
+
+    let fill='#0e1928', stroke='#1c3050', r=13, tc='#374e68', gf='';
+
+    if(isCld)  {fill='rgba(139,92,246,.15)';stroke='#8b5cf6';tc='#a78bfa';}
+    if(isOpen&&!isCur){fill='rgba(245,158,11,.15)';stroke='#f59e0b';tc='#fbbf24';}
+    if(isPath) {fill='rgba(0,245,160,.12)';stroke='#00f5a0';tc='#00f5a0';r=15;gf='url(#glow-sm)';}
+    if(isSrc)  {stroke='#00e5ff';tc='#00e5ff';gf='url(#glow-sm)';}
+    if(isDst)  {stroke='#ff6b2b';fill='rgba(255,107,43,.1)';tc='#ff6b2b';gf='url(#glow-sm)';}
+    if(isCur)  {fill='rgba(255,107,43,.22)';stroke='#ff6b2b';tc='#ff6b2b';r=17;gf='url(#glow-md)';}
+
+    const g=se('g',{cursor:'pointer'});
+
+    if(isCur){
+      g.appendChild(se('circle',{cx:city.x,cy:city.y,r:r+10,fill:'none',stroke:'#ff6b2b','stroke-width':1.2,opacity:0.3}));
+      g.appendChild(se('circle',{cx:city.x,cy:city.y,r:r+18,fill:'none',stroke:'#ff6b2b','stroke-width':0.6,opacity:0.15}));
+    }
+
+    g.appendChild(se('circle',{cx:city.x,cy:city.y,r,fill,stroke,'stroke-width':2,filter:gf}));
+
+    // Label positioned smartly
+    const lx=city.x, ly=city.y+r+11;
+    const lt=se('text',{x:lx,y:ly,'text-anchor':'middle',fill:tc,'font-size':8.5,'font-family':'Outfit,sans-serif','font-weight':700});
+    lt.textContent=cityLabel(name);
+    g.appendChild(lt);
+
+    // f badge when in open
+    if((isCur||isOpen)&&!path.length){
+      const gv=gSnap[name]!==undefined&&gSnap[name]!==Infinity?gSnap[name]:'?';
+      const fv=gv!=='?'?gv+getH(name):'?';
+      const ft=se('text',{x:city.x+r+1,y:city.y-r+1,fill:'#f59e0b','font-size':7.5,'font-family':'JetBrains Mono,monospace'});
+      ft.textContent=`f=${fv}`;
+      g.appendChild(ft);
+    }
+
+    g.addEventListener('mouseenter',ev=>showTT(ev,name,city,gSnap));
+    g.addEventListener('mouseleave',hideTT);
+    g.addEventListener('mousemove',ev=>moveTT(ev));
+    lN.appendChild(g);
+  });
+}
+
+function isOnPath(a,b,path){
+  for(let i=0;i<path.length-1;i++)
+    if((path[i]===a&&path[i+1]===b)||(path[i]===b&&path[i+1]===a)) return true;
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TOOLTIP
+// ═══════════════════════════════════════════════════════════════
+function showTT(ev,name,city,gSnap={}){
+  const tt=document.getElementById('tooltip');
+  const gv=gSnap[name]!==undefined&&gSnap[name]!==Infinity?gSnap[name]:'∞';
+  const hv=getH(name);
+  const fv=gv!=='∞'?gv+hv:'∞';
+  document.getElementById('tt-name').textContent=cityLabel(name);
+  document.getElementById('tt-body').innerHTML=
+    `<span style="color:var(--green)">g = ${gv} km</span><br>`+
+    `<span style="color:var(--purple)">h = ${hv} km</span><br>`+
+    `<span style="color:var(--cyan)">f = ${fv} km</span><br>`+
+    `<span style="color:var(--text-dim)">${CITIES[name].region}</span>`;
+  tt.style.display='block';
+  moveTT(ev);
+}
+function moveTT(ev){
+  const tt=document.getElementById('tooltip');
+  const wr=document.querySelector('.map-wrap').getBoundingClientRect();
+  let x=ev.clientX-wr.left+14, y=ev.clientY-wr.top-45;
+  if(x+175>wr.width) x=ev.clientX-wr.left-180;
+  if(y<0) y=4;
+  tt.style.left=x+'px'; tt.style.top=y+'px';
+}
+function hideTT(){ document.getElementById('tooltip').style.display='none'; }
+
+// ═══════════════════════════════════════════════════════════════
+//  RUN
+// ═══════════════════════════════════════════════════════════════
+function runAlgorithm(){
+  if(running) return;
+  if(animTmr) clearTimeout(animTmr);
+  const src=document.getElementById('selStart').value;
+  const dst=document.getElementById('selEnd').value;
+  if(src===dst){alert('Choisissez deux villes différentes !');return;}
+
+  const adj=buildAdj();
+  let res;
+  if(selAlgo==='astar')     res=doAStar(src,dst,adj);
+  else if(selAlgo==='ucs')  res=doUCS(src,dst,adj);
+  else                       res=doBestFirst(src,dst,adj);
+
+  if(!res){alert('Aucun chemin trouvé !');return;}
+
+  document.getElementById('sCost').textContent  = res.cost;
+  document.getElementById('sNodes').textContent = res.expanded;
+  document.getElementById('sIter').textContent  = res.iters.length;
+  document.getElementById('sSteps').textContent = res.path.length;
+
+  document.getElementById('traceScroll').innerHTML='';
+  running=true;
+  document.getElementById('btnRun').disabled=true;
+  animStep(res,0,src,dst);
+}
+
+function animStep(res,idx,src,dst){
+  const speed=2400-parseInt(document.getElementById('speedSlider').value);
+  const{iters,path}=res;
+
+  if(idx>=iters.length){
+    const last=iters[idx-1];
+    renderMap({path,openList:[],closedList:[],currentNode:path[path.length-1],src,dst,gSnap:last?.gSnap||{}});
+    addResCard(res);
+    running=false;
+    document.getElementById('btnRun').disabled=false;
+    return;
+  }
+
+  const it=iters[idx];
+  const isLast=idx===iters.length-1;
+  renderMap({
+    openList:it.openList.map(n=>n.name),
+    closedList:it.closedList,
+    currentNode:it.current,
+    path:isLast?path:[],
+    src,dst,gSnap:it.gSnap,
+  });
+  addTraceCard(it,idx+1,isLast?path:null);
+  animTmr=setTimeout(()=>animStep(res,idx+1,src,dst),speed);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TRACE CARDS
+// ═══════════════════════════════════════════════════════════════
+function addTraceCard(it,num,path){
+  const el=document.getElementById('traceScroll');
+  const card=document.createElement('div');
+  card.className='tc '+(path?'done':'cur');
+  const oStr=it.openList.length?it.openList.map(n=>`${cityLabel(n.name)}(${Math.round(n.f)})`).join(', '):'∅';
+  const cStr=it.closedList.length?it.closedList.map(n=>cityLabel(n)).join(', '):'∅';
+  card.innerHTML=`
+    <div class="tc-iter">ITÉRATION ${num}</div>
+    <div class="tc-node ${path?'done':''}">📍 ${cityLabel(it.current)}</div>
+    <div class="tc-vals">
+      <span class="vtag g">g=${it.g}</span>
+      <span class="vtag h">h=${it.h}</span>
+      <span class="vtag f">f=${it.f}</span>
+    </div>
+    <div class="tc-lists">
+      <span class="lo">OPEN</span>: ${oStr}<br>
+      <span class="lc">CLOSED</span>: ${cStr}
+    </div>
+    ${path?`<div style="margin-top:7px;padding-top:7px;border-top:1px solid rgba(0,245,160,0.2);color:var(--green);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;">✅ DESTINATION ATTEINTE</div>`:''}
+  `;
+  el.appendChild(card);
+  el.scrollTop=el.scrollHeight;
+}
+
+function addResCard(res){
+  const el=document.getElementById('traceScroll');
+  const card=document.createElement('div');
+  card.className='rcard';
+  const ph=res.path.map((n,i)=>
+    i<res.path.length-1?`${cityLabel(n)}<span class="arr"> → </span>`:cityLabel(n)
+  ).join('');
+  card.innerHTML=`
+    <div class="rcard-title">🏆 RÉSULTAT FINAL</div>
+    <div class="rcard-path">${ph}</div>
+    <div class="rcard-stats">
+      <div class="rsbox"><div class="rsv">${res.cost}</div><div class="rsl">COÛT km</div></div>
+      <div class="rsbox"><div class="rsv">${res.expanded}</div><div class="rsl">NOEUDS EXP.</div></div>
+    </div>
+  `;
+  el.appendChild(card);
+  el.scrollTop=el.scrollHeight;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RESET
+// ═══════════════════════════════════════════════════════════════
+function resetAll(){
+  if(animTmr) clearTimeout(animTmr);
+  running=false; gVals={};
+  document.getElementById('btnRun').disabled=false;
+  document.getElementById('traceScroll').innerHTML=
+    '<div class="trace-empty">Sélectionnez un itinéraire<br>et cliquez ▶ Lancer</div>';
+  ['sCost','sNodes','sIter','sSteps'].forEach(id=>document.getElementById(id).textContent='—');
+  renderMap({src:document.getElementById('selStart').value, dst:document.getElementById('selEnd').value});
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+document.querySelectorAll('.atab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.atab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    selAlgo=btn.dataset.algo;
+  });
+});
+
+['selStart','selEnd'].forEach(id=>{
+  document.getElementById(id).addEventListener('change',()=>{ if(!running) resetAll(); });
+});
+
+populateSelects();
+renderMap({src:'Tunis',dst:'Tozeur'});
+</script>
+</body>
+</html>
